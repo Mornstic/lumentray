@@ -34,6 +34,15 @@ jobs:
           }
           Write-Output "版本：$tagVersion"
 
+      - name: Verify release notes
+        shell: pwsh
+        run: |
+          $notes = ".github/release-notes/${{ github.ref_name }}.md"
+          if (-not (Test-Path $notes)) {
+            throw "缺少发布日志 $notes；请先按 CONTRIBUTING.md 撰写后再打标签"
+          }
+          Write-Output "发布日志：$notes"
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -67,6 +76,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: LumenTray ${{ github.ref_name }}
-          generate_release_notes: true
+          body_path: .github/release-notes/${{ github.ref_name }}.md
           files: app/src-tauri/target/release/release-assets/*
           fail_on_unmatched_files: true

@@ -61,14 +61,15 @@ npm run build
 由维护者操作，普通 PR 不需要改动版本号。
 
 1. 同步更新 `app/package.json`、`app/src-tauri/tauri.conf.json` 的 `version` 与 `CHANGELOG.md`。
-2. 提交后打标签并推送：
+2. 撰写 `.github/release-notes/v<version>.md`：亮点、下载与校验、升级说明、已知限制、完整变更日志链接。发布工作流会检查该文件，缺失会直接失败，避免发布只有一行自动链接的空日志。
+3. 提交后打标签并推送：
 
 ```powershell
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-3. `.github/workflows/release.yml` 在 Windows runner 上构建，先校验标签与 `app/package.json` 版本一致，再发布安装包、免安装包与 `SHA256SUMS.txt`。
-4. 本地演练可执行 `powershell -ExecutionPolicy Bypass -File tools\package_release.ps1`，产物在 `app/src-tauri/target/release/release-assets/`。
+4. `.github/workflows/release.yml` 在 Windows runner 上构建，先校验标签与版本号一致、发布日志齐全，再以该日志作为 Release 正文发布安装包、免安装包与 `SHA256SUMS.txt`。
+5. 本地演练可执行 `powershell -ExecutionPolicy Bypass -File tools\package_release.ps1`，产物在 `app/src-tauri/target/release/release-assets/`。
 
 发布构建必须使用 `npm run tauri build`；直接 `cargo build --release` 不会启用 `tauri/custom-protocol`。
