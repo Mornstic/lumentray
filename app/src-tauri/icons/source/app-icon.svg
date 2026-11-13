@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#232026"/>
+      <stop offset="0.55" stop-color="#17151a"/>
+      <stop offset="1" stop-color="#0e0d10"/>
+    </linearGradient>
+    <radialGradient id="warm" cx="0.5" cy="0.62" r="0.62">
+      <stop offset="0" stop-color="#ffcf9a" stop-opacity="0.24"/>
+      <stop offset="0.55" stop-color="#ffb877" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#ffb877" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#fff6e8" stop-opacity="0.5"/>
+      <stop offset="0.28" stop-color="#fff6e8" stop-opacity="0.08"/>
+      <stop offset="0.7" stop-color="#fff6e8" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#fff6e8" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.38" cy="0.3" r="0.78">
+      <stop offset="0" stop-color="#fff1d6"/>
+      <stop offset="0.42" stop-color="#ffd59d"/>
+      <stop offset="1" stop-color="#e9ab68"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffcf9a" stop-opacity="0.34"/>
+      <stop offset="0.6" stop-color="#ffc184" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#ffb877" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pool" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd9a8" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#ffd9a8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="72" y="72" width="880" height="880" rx="228" fill="url(#plate)"/>
+  <rect x="72" y="72" width="880" height="880" rx="228" fill="url(#warm)"/>
+  <rect x="75" y="75" width="874" height="874" rx="225" fill="none" stroke="url(#rim)" stroke-width="3"/>
+
+  <ellipse cx="512" cy="700" rx="330" ry="190" fill="url(#halo)"/>
+  <ellipse cx="512" cy="763" rx="300" ry="28" fill="url(#pool)"/>
+
+  <g transform="translate(56 128.3) scale(38)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 14.8a5 5 0 0 1 10 0Z" fill="url(#sun)"/>
+    <path d="M12 7.2V4.2M6.4 9.5L4.2 7.3M17.6 9.5l2.2-2.2" stroke="#efe5d3" stroke-opacity="0.82" stroke-width="2"/>
+    <path d="M3.8 16.7h16.4" stroke="#efe5d3" stroke-width="1.7"/>
+  </g>
+</svg>

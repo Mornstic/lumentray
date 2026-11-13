@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: fmt · clippy · test · build
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            app/src-tauri
+            tools/ddcctl
+
+      - name: Check formatting
+        run: |
+          cargo fmt --manifest-path app/src-tauri/Cargo.toml --all -- --check
+          cargo fmt --manifest-path crates/ddc-core/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ddcctl/Cargo.toml --all -- --check
+
+      - name: Run Clippy
+        run: |
+          cargo clippy --manifest-path app/src-tauri/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path crates/ddc-core/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path tools/ddcctl/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run tests
+        run: |
+          cargo test --manifest-path crates/ddc-core/Cargo.toml
+          cargo test --manifest-path app/src-tauri/Cargo.toml
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: app
+        run: npm run build

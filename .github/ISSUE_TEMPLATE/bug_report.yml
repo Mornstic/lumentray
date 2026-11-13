@@ -1,0 +1,101 @@
+name: Bug 报告
+description: 报告可复现的故障或异常行为
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先阅读 README 的「常见问题」，并确认内容中不含完整的显示器设备路径、EDID 序列号或未打码的截图。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 实际发生了什么？越具体越好。
+      placeholder: 例如：飞窗里某台显示器显示「上次 90%」，但其它两台可以正常调节。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 观察到 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 程序版本
+      description: 安装包文件名或设置页显示的版本
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: 安装方式
+      options:
+        - NSIS 安装包
+        - 免安装 ZIP
+        - 从源码构建
+    validations:
+      required: true
+
+  - type: input
+    id: monitor
+    attributes:
+      label: 显示器型号与连接方式
+      description: 出问题的显示器型号，以及 DisplayPort / HDMI / USB-C 等连接方式
+      placeholder: DELL U2412M，DisplayPort
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ddc_enabled
+    attributes:
+      label: 显示器 OSD 中的 DDC/CI
+      options:
+        - 已开启
+        - 未开启 / 不确定
+        - 显示器没有该选项
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 诊断报告
+      description: 设置 → 诊断 → 复制诊断报告。粘贴前请删除完整的设备路径与序列号。
+      render: shell
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 确认
+      options:
+        - label: 我已搜索已有 Issue 和 README 常见问题
+          required: true
+        - label: 我确认内容中不含完整设备路径、EDID 序列号或未打码的隐私信息
+          required: true

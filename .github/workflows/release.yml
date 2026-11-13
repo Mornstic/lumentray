@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build · package · publish
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify tag matches version
+        shell: pwsh
+        run: |
+          $tagVersion = "${{ github.ref_name }}".TrimStart("v")
+          $pkgVersion = (Get-Content app/package.json -Raw | ConvertFrom-Json).version
+          $tauriVersion = (Get-Content app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($tagVersion -ne $pkgVersion -or $tagVersion -ne $tauriVersion) {
+            throw "Tag ${{ github.ref_name }}、app/package.json ($pkgVersion)、tauri.conf.json ($tauriVersion) 版本不一致"
+          }
+          Write-Output "版本：$tagVersion"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            app/src-tauri
+            tools/ddcctl
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build installer
+        working-directory: app
+        run: npm run tauri build
+
+      - name: Package release assets
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File tools\package_release.ps1
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: LumenTray ${{ github.ref_name }}
+          generate_release_notes: true
+          files: app/src-tauri/target/release/release-assets/*
+          fail_on_unmatched_files: true

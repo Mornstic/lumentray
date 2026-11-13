@@ -1,0 +1,9 @@
+export function BrandMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path className="mark-sun" d="M7 14.8a5 5 0 0 1 10 0Z" />
+      <path d="M3.8 16.7h16.4" strokeWidth={1.7} />
+      <path d="M12 7.2V4.2M6.4 9.5L4.2 7.3M17.6 9.5l2.2-2.2" strokeWidth={2} />
+    </svg>
+  );
+}
