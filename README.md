@@ -13,15 +13,19 @@
   <img alt="Windows 10 / 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows11&logoColor=white">
   <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-24C8DB?style=flat-square&logo=tauri&logoColor=white">
   <img alt="Rust stable" src="https://img.shields.io/badge/Rust-stable-B7410E?style=flat-square&logo=rust&logoColor=white">
-  <img alt="DDC/CI" src="https://img.shields.io/badge/control-DDC%2FCI-2F855A?style=flat-square">
+  <img alt="DDC/CI" src="https://img.shields.io/badge/brightness-DDC%2FCI-2F855A?style=flat-square">
   <img alt="Release" src="https://img.shields.io/github/v/release/Mornstic/lumentray?style=flat-square&label=release&color=2F855A">
   <img alt="License" src="https://img.shields.io/github/license/Mornstic/lumentray?style=flat-square&color=2F855A">
   <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Mornstic/lumentray/ci.yml?style=flat-square&label=CI">
 </p>
 
 <p align="center">
-  <a href="https://github.com/Mornstic/lumentray/releases/latest"><b>下载最新版</b></a>
-  &nbsp;·&nbsp;
+  <a href="https://github.com/Mornstic/lumentray/releases/latest">
+    <img alt="下载 LumenTray" src="https://img.shields.io/badge/Download-LumenTray-2F855A?style=for-the-badge&logo=windows11&logoColor=white">
+  </a>
+</p>
+
+<p align="center">
   <a href="#界面">界面</a>
   &nbsp;·&nbsp;
   <a href="#使用">使用</a>
@@ -32,6 +36,8 @@
   &nbsp;·&nbsp;
   <a href="#常见问题">常见问题</a>
   &nbsp;·&nbsp;
+  <a href="#开发">开发</a>
+  &nbsp;·&nbsp;
   <a href="docs/architecture.md">架构详解</a>
   &nbsp;·&nbsp;
   <a href="docs/design-language.md">设计语言</a>
@@ -40,8 +46,12 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/flyout-light.png" width="420" alt="LumenTray 亮度飞窗">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/flyout-dark.png">
+    <img src="docs/screenshots/flyout-light.png" width="420" alt="LumenTray 亮度飞窗">
+  </picture>
 </p>
+<p align="center"><sub>飞窗按真实桌面排列显示器；截图跟随 GitHub 深浅主题切换</sub></p>
 
 > 多显示器亮度不该藏在显示器背面的按键里，也不该由一个常驻数百 MB 的主界面来管。LumenTray 只做一条路径：点托盘、拖滑杆、关窗。没有账号、没有云端、没有轮询；关掉窗口后只留一个安静的托盘进程。
 
@@ -60,16 +70,10 @@
 | **全局快捷键** | `Alt` + `F1` / `F2` 调高、调低所有屏幕，默认关闭；调节时在鼠标所在屏显示 OSD |
 | **恢复亮度** | 可选在启动和唤醒后恢复每台显示器上次记录的亮度，默认关闭 |
 | **玻璃外观** | 暖石墨玻璃 + 象牙光强调色；跟随系统深浅色，可调玻璃不透明度 |
-| **诊断完整** | 每屏设备路径、DDC 方法、错误码、日志尾部，一键复制报告；附带 `ddcctl` CLI |
+| **诊断完整** | 每屏设备路径、DDC 方法、错误码、日志尾部，一键复制报告；仓库附带 `ddcctl` 诊断 CLI |
 | **完全本地** | 不联网、无遥测、无需管理员权限；亮度通过 DDC/CI 直接写入显示器 |
 
 ## 界面
-
-<p align="center">
-  <img src="docs/screenshots/flyout-light.png" width="42%" alt="浅色飞窗">
-  <img src="docs/screenshots/flyout-dark.png" width="42%" alt="深色飞窗">
-</p>
-<p align="center"><sub>左：跟随系统的浅色玻璃　右：深色主题下的同一面板</sub></p>
 
 飞窗不是系统控件的拼装：显示器光图按真实分辨率与相对位置排布，屏幕里的暖光跟随该屏亮度变化；滑杆、开关、状态圆点与读数都单独绘制。读数使用衬线数字与上标百分号，标签和说明保持无衬线，路径与错误码使用等宽字体。
 
@@ -77,7 +81,7 @@
   <img src="docs/screenshots/settings-general-light.png" width="48%" alt="设置 · 通用">
   <img src="docs/screenshots/settings-displays-dark.png" width="48%" alt="设置 · 显示器">
 </p>
-<p align="center"><sub>左：通用设置与外观　右：显示器状态与重新检测</sub></p>
+<p align="center"><sub>左：通用设置与外观 · 右：显示器状态与重新检测</sub></p>
 
 设置窗口分为通用、快捷键、显示器、诊断、关于五页。修改即时生效：主题与玻璃不透明度立刻预览，开机启动直接写入当前用户注册表，快捷键重新注册后才离开录制状态。
 
@@ -90,6 +94,8 @@ OSD 不抢焦点、不进任务栏和 `Alt` + `Tab`、鼠标可穿透；显示�
 
 ## 使用
 
+### 托盘与滑杆
+
 - 左键单击托盘图标：打开或收起亮度飞窗
 - 右键单击托盘图标：打开亮度、设置、重新检测显示器、退出
 - 拖动单屏滑杆：只写该显示器；拖动总控：写入所有当前可读写的显示器
@@ -97,7 +103,7 @@ OSD 不抢焦点、不进任务栏和 `Alt` + `Tab`、鼠标可穿透；显示�
 - 按 `Esc` 或点击飞窗外部关闭飞窗；飞窗关闭后程序仍在托盘运行
 - 某块屏不可控时，卡片上的「重试」会重新枚举并读取该屏，不影响其他屏幕
 
-设置页说明：
+### 设置页
 
 | 页面 | 内容 |
 |---|---|
@@ -120,20 +126,24 @@ OSD 不抢焦点、不进任务栏和 `Alt` + `Tab`、鼠标可穿透；显示�
 
 ## 安装
 
-支持 Windows 10 / 11（x64），需要 WebView2 运行时（Windows 11 已自带）。
+支持 Windows 10 / 11（x64），需要 WebView2 运行时（Windows 11 已自带）。安装版按当前用户安装，不需要管理员权限。
 
-从仓库的 [Releases](https://github.com/Mornstic/lumentray/releases/latest) 页面下载：
+### 下载安装
+
+从 [Releases](https://github.com/Mornstic/lumentray/releases/latest) 页面下载：
 
 | 文件 | 说明 |
 |---|---|
-| `LumenTray_0.1.0_x64-setup.exe` | 推荐；当前用户安装，无需管理员权限，装完自动驻留托盘 |
-| `LumenTray_0.1.0_x64-portable.zip` | 免安装；解压后运行 `lumentray.exe` |
+| `LumenTray_<version>_x64-setup.exe` | 推荐；按当前用户安装，装完自动驻留托盘 |
+| `LumenTray_<version>_x64-portable.zip` | 免安装；解压后直接运行 `lumentray.exe` |
 | `SHA256SUMS.txt` | 安装包与便携包的 SHA-256 校验和 |
 
-下载后可在 PowerShell 中校验：
+### 校验下载
+
+下载后可在 PowerShell 中核对 SHA-256：
 
 ```powershell
-Get-FileHash .\LumenTray_0.1.0_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\LumenTray_<version>_x64-setup.exe -Algorithm SHA256
 ```
 
 > [!WARNING]
@@ -142,17 +152,18 @@ Get-FileHash .\LumenTray_0.1.0_x64-setup.exe -Algorithm SHA256
 
 ### 从源码构建
 
-前置：Rust stable（MSVC）、Visual Studio C++ 生成工具、Node.js 20+。
+前置：Windows 10 / 11、Rust stable（MSVC）、Visual Studio C++ 生成工具、Node.js 20+、WebView2 运行时。
 
 ```powershell
-cd app
+git clone https://github.com/Mornstic/lumentray.git
+cd lumentray/app
 npm install
 npm run tauri build
 ```
 
 产物：
 
-- 安装包 `app/src-tauri/target/release/bundle/nsis/LumenTray_0.1.0_x64-setup.exe`
+- 安装包 `app/src-tauri/target/release/bundle/nsis/LumenTray_<version>_x64-setup.exe`
 - 可执行文件 `app/src-tauri/target/release/lumentray.exe`
 
 生成发布资产（ASCII 命名的安装包、免安装 ZIP 与校验和）：
@@ -190,8 +201,17 @@ Windows 11 会把新图标折叠进任务栏的 `^` 溢出区，把它拖到任�
 **关闭飞窗后程序还在运行吗？**
 在。关闭飞窗会销毁窗口并释放 WebView2 进程，只保留托盘主进程；再次打开时按需重建，通常几百毫秒内出现。需要完全退出时使用托盘右键菜单的「退出」。
 
+**设置和亮度记录保存在哪里？**
+设置保存在 `%APPDATA%\LumenTray\settings.json`，日志保存在 `%APPDATA%\LumenTray\logs\`；设置页的「诊断」可以直接查看并复制这些路径。
+
 **支持对比度、色温、输入源或 HDR 吗？**
-v1 只做亮度这一条路径。其它 DDC/CI 能力尚未提供界面。
+当前版本只做亮度这一条路径，其它 DDC/CI 能力尚未提供界面。
+
+**收费吗？**
+不收费。LumenTray 以 MIT 协议开源，没有账号、内购或云服务，也可以自行构建和分发。
+
+**会自动更新吗？**
+当前版本不包含自动更新。新版本请从 Releases 下载覆盖安装，设置、亮度记录与开机启动配置会保留。
 
 **会上传数据吗？**
 不会。LumenTray 不包含网络代码，不访问云端，也没有遥测。
@@ -318,15 +338,25 @@ cargo run -- bench             # 同值连写 5 次，查看枚举与稳态写�
 
 - Bug 报告请使用仓库的 Issue 模板，附上 Windows 版本、程序版本、显示器型号、连接方式和诊断报告
 - 安全漏洞请按 [SECURITY.md](SECURITY.md) 私下报告，不要在公开 Issue 中粘贴完整设备路径之外的个人信息
-- 新功能请先开 Issue 说明使用场景；v1 的范围有意收在亮度控制
+- 新功能请先开 Issue 说明使用场景；当前版本的范围有意收在亮度控制
 
 ## 版本
 
-当前版本 **v0.1.0**，更新记录见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本 **v0.1.0**，遵循[语义化版本](https://semver.org/lang/zh-CN/)。每个版本的变更见 [`CHANGELOG.md`](CHANGELOG.md)。
+
+## 文档
+
+| 文档 | 内容 |
+|---|---|
+| [架构详解](docs/architecture.md) | 进程模型、显示器枚举、DDC/CI 策略与数据流 |
+| [设计语言](docs/design-language.md) | 材质、字体、读数系统与窗口规格 |
+| [贡献指南](CONTRIBUTING.md) | 开发环境、代码约定与发布流程 |
+| [安全策略](SECURITY.md) | 漏洞报告方式与安全边界 |
+| [更新记录](CHANGELOG.md) | 版本历史与重要变更 |
 
 ## 许可证
 
-本项目基于 [MIT License](LICENSE) 开源，Copyright (c) 2026 Mornstic。
+LumenTray 以 [MIT License](LICENSE) 开源，Copyright (c) 2026 Mornstic。
 
 随包字体 Inter、Newsreader、Noto Sans SC 按 SIL Open Font License 1.1 分发，
 许可见 [`app/src/assets/fonts/`](app/src/assets/fonts/)。

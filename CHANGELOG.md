@@ -23,7 +23,7 @@
 ### 工程
 
 - Tauri 2 + React 19 + TypeScript + Vite；DDC/CI 核心拆为独立 crate `ddc-core`
-- 进程级 DDC 串行化：枚举、读取与写入共用一把互斥锁，飞窗、快捷键与恢复流程不会并交叉挤占 I2C 通道
+- 进程级 DDC 串行化：枚举、读取与写入共用一把互斥锁，飞窗、快捷键与恢复流程不会交叉挤占 I2C 通道
 - GitHub Actions：`v*` 标签触发 Windows 构建，校验版本号后自动发布安装包、免安装包与 SHA-256 校验和
 - 随包 Inter、Newsreader 与 Noto Sans SC 子集（均为 OFL 1.1），中文优先使用本机 HarmonyOS Sans SC
 - 安装包约 1.8 MB；本机三屏环境下空闲工作集约 15 MB，飞窗打开约 0.4 秒
