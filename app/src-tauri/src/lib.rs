@@ -23,7 +23,7 @@ use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, MSG, PBT_APMRESUMEAUTOMATIC,
     PBT_APMRESUMESUSPEND, RegisterClassW, TranslateMessage, WM_DEVICECHANGE, WM_DISPLAYCHANGE,
-    WM_POWERBROADCAST, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP,
+    WM_POWERBROADCAST, WM_SETTINGCHANGE, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP,
 };
 use windows::core::w;
 
@@ -44,6 +44,8 @@ static EVENT_APP: OnceLock<AppHandle> = OnceLock::new();
 static EVENT_SEQ: AtomicU64 = AtomicU64::new(0);
 static USER_WRITE_SEQ: AtomicU64 = AtomicU64::new(0);
 static RESTORE_RUNNING: AtomicBool = AtomicBool::new(false);
+/// 当前托盘图标对应的任务栏配色（true = 浅色任务栏，使用深色图标）。
+static TRAY_LIGHT_TASKBAR: AtomicBool = AtomicBool::new(false);
 
 pub(crate) fn trace(message: &str) {
     logging::write(message);
@@ -63,6 +65,15 @@ unsafe extern "system" fn event_wnd_proc(
         && hotkeys::handle_message(app, msg, wparam, lparam)
     {
         return LRESULT(0);
+    }
+    // 系统主题切换会广播 WM_SETTINGCHANGE（ImmersiveColorSet）。托盘图标是静态位图，
+    // 不会像 WebView 的 prefers-color-scheme 那样自动重绘，必须按新的任务栏配色换图。
+    if msg == WM_SETTINGCHANGE
+        && let Some(app) = EVENT_APP.get().cloned()
+    {
+        let _ = std::thread::Builder::new()
+            .name("lumentray-tray-theme".into())
+            .spawn(move || refresh_tray_icon(&app));
     }
     let (delay, restore) = match msg {
         WM_DISPLAYCHANGE | WM_DEVICECHANGE => (Some(600), false),
@@ -714,6 +725,48 @@ fn system_uses_light_taskbar() -> bool {
     status.0 == 0 && value == 1
 }
 
+fn tray_icon_bytes(light_taskbar: bool) -> &'static [u8] {
+    if light_taskbar {
+        include_bytes!("../icons/tray/tray-dark-32.png")
+    } else {
+        include_bytes!("../icons/tray/tray-light-32.png")
+    }
+}
+
+/// 按当前任务栏配色重设托盘图标。只在读数变化时调用 set_icon，避免
+/// WM_SETTINGCHANGE 连续广播时反复向主线程派发；失败则回滚状态以便下次重试。
+fn refresh_tray_icon(app: &AppHandle) {
+    let light = system_uses_light_taskbar();
+    let previous = TRAY_LIGHT_TASKBAR.load(Ordering::Relaxed);
+    if previous == light {
+        return;
+    }
+    if TRAY_LIGHT_TASKBAR
+        .compare_exchange(previous, light, Ordering::AcqRel, Ordering::Relaxed)
+        .is_err()
+    {
+        return;
+    }
+    let Some(tray) = app.tray_by_id("lumentray") else {
+        trace("[tray] theme refresh: tray icon not found");
+        TRAY_LIGHT_TASKBAR.store(previous, Ordering::Relaxed);
+        return;
+    };
+    let result = tauri::image::Image::from_bytes(tray_icon_bytes(light))
+        .map_err(|error| error.to_string())
+        .and_then(|icon| tray.set_icon(Some(icon)).map_err(|error| error.to_string()));
+    match result {
+        Ok(()) => trace(&format!(
+            "[tray] icon switched for {} taskbar",
+            if light { "light" } else { "dark" }
+        )),
+        Err(error) => {
+            trace(&format!("[tray] theme refresh failed: {error}"));
+            TRAY_LIGHT_TASKBAR.store(previous, Ordering::Relaxed);
+        }
+    }
+}
+
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "打开亮度", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
@@ -758,12 +811,9 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             }
         });
 
-    let tray_glyph: &[u8] = if system_uses_light_taskbar() {
-        include_bytes!("../icons/tray/tray-dark-32.png")
-    } else {
-        include_bytes!("../icons/tray/tray-light-32.png")
-    };
-    match tauri::image::Image::from_bytes(tray_glyph) {
+    let light_taskbar = system_uses_light_taskbar();
+    TRAY_LIGHT_TASKBAR.store(light_taskbar, Ordering::Relaxed);
+    match tauri::image::Image::from_bytes(tray_icon_bytes(light_taskbar)) {
         Ok(icon) => builder = builder.icon(icon),
         Err(error) => trace(&format!("[tray] icon decode failed: {error}")),
     }
