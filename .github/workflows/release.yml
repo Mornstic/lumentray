@@ -73,7 +73,7 @@ jobs:
         run: powershell -ExecutionPolicy Bypass -File tools\package_release.ps1
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: LumenTray ${{ github.ref_name }}
           body_path: .github/release-notes/${{ github.ref_name }}.md
