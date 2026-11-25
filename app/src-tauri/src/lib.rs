@@ -18,12 +18,15 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
-use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{HANDLE, HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Power::{POWERBROADCAST_SETTING, RegisterPowerSettingNotification};
+use windows::Win32::System::SystemServices::GUID_CONSOLE_DISPLAY_STATE;
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DispatchMessageW, GetMessageW, MSG, PBT_APMRESUMEAUTOMATIC,
-    PBT_APMRESUMESUSPEND, RegisterClassW, TranslateMessage, WM_DEVICECHANGE, WM_DISPLAYCHANGE,
-    WM_POWERBROADCAST, WM_SETTINGCHANGE, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP,
+    CreateWindowExW, DEVICE_NOTIFY_WINDOW_HANDLE, DefWindowProcW, DispatchMessageW, GetMessageW,
+    MSG, PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND, PBT_POWERSETTINGCHANGE, RegisterClassW,
+    SC_MONITORPOWER, TranslateMessage, WM_DEVICECHANGE, WM_DISPLAYCHANGE, WM_POWERBROADCAST,
+    WM_SETTINGCHANGE, WM_SYSCOMMAND, WNDCLASSW, WS_EX_TOOLWINDOW, WS_POPUP,
 };
 use windows::core::w;
 
@@ -42,6 +45,7 @@ static LAST_CLOSE: Mutex<Option<Instant>> = Mutex::new(None);
 static QUITTING: AtomicBool = AtomicBool::new(false);
 static EVENT_APP: OnceLock<AppHandle> = OnceLock::new();
 static EVENT_SEQ: AtomicU64 = AtomicU64::new(0);
+static DISPLAY_ON_SEQ: AtomicU64 = AtomicU64::new(0);
 static USER_WRITE_SEQ: AtomicU64 = AtomicU64::new(0);
 static RESTORE_RUNNING: AtomicBool = AtomicBool::new(false);
 /// 当前托盘图标对应的任务栏配色（true = 浅色任务栏，使用深色图标）。
@@ -79,8 +83,39 @@ unsafe extern "system" fn event_wnd_proc(
         WM_DISPLAYCHANGE | WM_DEVICECHANGE => (Some(600), false),
         WM_POWERBROADCAST => match wparam.0 as u32 {
             PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => (Some(1200), true),
+            // 显示器单独待机/上电不会产生系统 resume；部分显示器在 DPMS 待机时
+            // 会丢掉 DDC 设定的亮度，因此屏幕重新点亮后也要走一次恢复。
+            PBT_POWERSETTINGCHANGE => {
+                let setting = unsafe { &*(lparam.0 as *const POWERBROADCAST_SETTING) };
+                if setting.PowerSetting != GUID_CONSOLE_DISPLAY_STATE || setting.DataLength < 4 {
+                    (None, false)
+                } else {
+                    match setting.Data[0] {
+                        0 => {
+                            trace("[events] display off");
+                            (None, false)
+                        }
+                        1 => {
+                            trace("[events] display on -> restore");
+                            schedule_display_restore_followup();
+                            (Some(6000), true)
+                        }
+                        _ => (None, false),
+                    }
+                }
+            }
             _ => (None, false),
         },
+        WM_SYSCOMMAND => {
+            let command = (wparam.0 as u32) & 0xFFF0;
+            if command == SC_MONITORPOWER && lparam.0 as i32 == -1 {
+                trace("[events] monitor power on -> restore");
+                schedule_display_restore_followup();
+                (Some(6000), true)
+            } else {
+                (None, false)
+            }
+        }
         _ => (None, false),
     };
     if let Some(delay) = delay {
@@ -95,6 +130,29 @@ fn notify_monitor_windows(app: &AppHandle) {
     {
         let _ = app.emit("monitors-changed", ());
     }
+}
+
+fn schedule_display_restore_followup() {
+    let Some(app) = EVENT_APP.get().cloned() else {
+        return;
+    };
+    let seq = DISPLAY_ON_SEQ.fetch_add(1, Ordering::Relaxed) + 1;
+    let user_seq = USER_WRITE_SEQ.load(Ordering::Relaxed);
+    let _ = std::thread::Builder::new()
+        .name("lumentray-restore-followup".into())
+        .spawn(move || {
+            // 部分显示器点亮后先报旧值，几秒后才回落；6 秒的首次恢复可能已经
+            // 错过这个窗口，12 秒再核对一次，用户中途手动调节则不再覆盖。
+            std::thread::sleep(Duration::from_millis(12000));
+            if DISPLAY_ON_SEQ.load(Ordering::Relaxed) != seq {
+                return;
+            }
+            if USER_WRITE_SEQ.load(Ordering::Relaxed) != user_seq {
+                trace("[restore] followup skipped: user wrote meanwhile");
+                return;
+            }
+            restore_saved_brightness(&app, false);
+        });
 }
 
 fn schedule_monitor_refresh(delay_ms: u64, restore: bool) {
@@ -156,6 +214,13 @@ fn spawn_event_window(app: AppHandle) {
             ) {
                 Ok(hwnd) => {
                     trace(&format!("[events] hidden window {:?}", hwnd.0));
+                    if let Err(error) = RegisterPowerSettingNotification(
+                        HANDLE(hwnd.0),
+                        &GUID_CONSOLE_DISPLAY_STATE,
+                        DEVICE_NOTIFY_WINDOW_HANDLE,
+                    ) {
+                        trace(&format!("[events] register display power failed: {error}"));
+                    }
                     hotkeys::set_window(hwnd);
                     hotkeys::init(&worker_app);
                 }
@@ -187,11 +252,6 @@ async fn list_monitors(app: AppHandle) -> ddc_core::MonitorList {
         started.elapsed().as_millis()
     ));
     let store = app.state::<SettingsStore>();
-    for monitor in &list.monitors {
-        if let Some(brightness) = monitor.brightness {
-            store.record_last_brightness(&monitor.id, brightness.percent);
-        }
-    }
     #[cfg(debug_assertions)]
     if let Ok(mode) = std::env::var("LUMENTRAY_SIMULATE_ERROR") {
         simulate_errors(&mut list, &mode);
@@ -296,6 +356,10 @@ impl Drop for RestoreGuard {
 }
 
 fn restore_saved_brightness(app: &AppHandle, force: bool) {
+    restore_saved_brightness_with_retry(app, force, true);
+}
+
+fn restore_saved_brightness_with_retry(app: &AppHandle, force: bool, allow_retry: bool) {
     if RESTORE_RUNNING.swap(true, Ordering::AcqRel) {
         trace("[restore] already running, skipped");
         return;
@@ -317,10 +381,14 @@ fn restore_saved_brightness(app: &AppHandle, force: bool) {
     ));
     cache::remember(&list);
     let store = app.state::<SettingsStore>();
-    let (mut restored, mut failed) = (0usize, 0usize);
+    let (mut restored, mut deferred, mut failed) = (0usize, 0usize, 0usize);
 
     for monitor in list.monitors {
         if monitor.brightness.is_none() {
+            if store.last_brightness(&monitor.id).is_some() {
+                deferred += 1;
+                trace(&format!("[restore] {} unreadable, deferred", monitor.name));
+            }
             continue;
         }
         let Some(saved) = store.last_brightness(&monitor.id) else {
@@ -337,6 +405,7 @@ fn restore_saved_brightness(app: &AppHandle, force: bool) {
         match (&outcome.error, outcome.brightness) {
             (None, _) => {
                 restored += 1;
+                trace(&format!("[restore] {} -> {saved}%", monitor.name));
                 hotkeys::note_brightness(&monitor.id, saved);
             }
             (Some(error), _) => {
@@ -356,6 +425,18 @@ fn restore_saved_brightness(app: &AppHandle, force: bool) {
     if restored > 0 {
         // 打开中的飞窗可能早于恢复完成就已读取过旧值
         notify_monitor_windows(app);
+    }
+    if (deferred > 0 || failed > 0) && allow_retry {
+        trace(&format!(
+            "[restore] {deferred} deferred, {failed} failed; retrying in 2500ms"
+        ));
+        let retry_app = app.clone();
+        let _ = std::thread::Builder::new()
+            .name("lumentray-restore-retry".into())
+            .spawn(move || {
+                std::thread::sleep(Duration::from_millis(2500));
+                restore_saved_brightness_with_retry(&retry_app, force, false);
+            });
     }
 }
 

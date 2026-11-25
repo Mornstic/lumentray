@@ -342,7 +342,7 @@ cargo run -- bench             # 同值连写 5 次，查看枚举与稳态写�
 
 ## 版本
 
-当前版本 **v0.1.0**，遵循[语义化版本](https://semver.org/lang/zh-CN/)。每个版本的变更见 [`CHANGELOG.md`](CHANGELOG.md)。
+当前版本 **v0.1.2**，遵循[语义化版本](https://semver.org/lang/zh-CN/)。每个版本的变更见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 文档
 

@@ -252,7 +252,7 @@ fn apply(app: &AppHandle, direction: i32) {
         .hotkey_step
         .clamp(1, 20) as i32;
     let amount = direction * step;
-    let values = current_brightnesses(app);
+    let values = current_brightnesses();
     if values.is_empty() {
         crate::trace("[hotkeys] no reachable monitor");
         return;
@@ -303,16 +303,14 @@ fn apply(app: &AppHandle, direction: i32) {
     ));
 }
 
-fn current_brightnesses(app: &AppHandle) -> Vec<(String, u32)> {
+fn current_brightnesses() -> Vec<(String, u32)> {
     if let Some(map) = cache::brightnesses(CACHE_TTL) {
         return map.into_iter().collect();
     }
     let list = ddc_core::enumerate();
-    let store = app.state::<SettingsStore>();
     let mut values = Vec::new();
     for monitor in &list.monitors {
         if let Some(brightness) = &monitor.brightness {
-            store.record_last_brightness(&monitor.id, brightness.percent);
             values.push((monitor.id.clone(), brightness.percent));
         }
     }

@@ -1,6 +1,6 @@
 [package]
 name = "lumentray"
-version = "0.1.0"
+version = "0.1.2"
 description = "Lightweight Windows tray brightness control"
 authors = ["Mornstic"]
 license = "MIT"
@@ -25,8 +25,10 @@ windows = { version = "0.62", features = [
     "Win32_System_DataExchange",
     "Win32_System_LibraryLoader",
     "Win32_System_Memory",
+    "Win32_System_Power",
     "Win32_System_Registry",
     "Win32_System_SystemInformation",
+    "Win32_System_SystemServices",
     "Win32_UI_Input_KeyboardAndMouse",
     "Win32_UI_WindowsAndMessaging",
 ] }

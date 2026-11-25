@@ -179,6 +179,8 @@ impl SettingsStore {
             .and_then(|monitor| monitor.last_brightness)
     }
 
+    /// 只记录成功写入的值。读取也会调用它的话，显示器待机复位后的读数会覆盖
+    /// 用户刚设定的亮度，唤醒恢复就失去意义。
     pub fn record_last_brightness(&self, id: &str, percent: u32) {
         let mut inner = self.inner.lock().unwrap();
         let entry = inner.settings.monitors.entry(id.to_string()).or_default();
